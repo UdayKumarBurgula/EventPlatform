@@ -40,9 +40,13 @@ public class AppDbContext
             .WithMany(x => x.Speakers)
             .HasForeignKey(x => x.EventId);
 
-        builder.Entity<TicketType>()
-            .HasOne(x => x.Event)
-            .WithMany(x => x.TicketTypes)
-            .HasForeignKey(x => x.EventId);
+        builder.Entity<TicketType>(e =>
+        {
+            e.Property(x => x.Price).HasPrecision(18, 2);
+
+            e.HasOne(x => x.Event)
+             .WithMany(x => x.TicketTypes)
+             .HasForeignKey(x => x.EventId);
+        });
     }
 }

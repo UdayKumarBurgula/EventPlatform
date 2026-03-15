@@ -18,7 +18,6 @@ public class EventsController : ControllerBase
         _db = db;
     }
 
-    [HttpGet]
     [AllowAnonymous]
     public async Task<IActionResult> GetAll()
     {
@@ -29,7 +28,31 @@ public class EventsController : ControllerBase
             .OrderBy(x => x.DateUtc)
             .ToListAsync();
 
-        return Ok(events);
+        var response = events.Select(evt => new EventResponse(
+            evt.Id,
+            evt.Title,
+            evt.Description,
+            evt.DateUtc,
+            evt.Venue,
+            evt.OrganizerId,
+            evt.AgendaItems.Select(a => new AgendaItemResponse(
+                a.Id,
+                a.Title,
+                a.StartUtc,
+                a.EndUtc)).ToList(),
+            evt.Speakers.Select(s => new SpeakerResponse(
+                s.Id,
+                s.Name,
+                s.Bio)).ToList(),
+            evt.TicketTypes.Select(t => new TicketTypeResponse(
+                t.Id,
+                t.EventId,
+                t.Name,
+                t.Price,
+                t.QuantityAvailable)).ToList()
+        )).ToList();
+
+        return Ok(response);
     }
 
     [HttpGet("{id:guid}")]
@@ -42,7 +65,34 @@ public class EventsController : ControllerBase
             .Include(x => x.TicketTypes)
             .FirstOrDefaultAsync(x => x.Id == id);
 
-        return evt is null ? NotFound() : Ok(evt);
+        if (evt is null)
+            return NotFound();
+
+        var response = new EventResponse(
+            evt.Id,
+            evt.Title,
+            evt.Description,
+            evt.DateUtc,
+            evt.Venue,
+            evt.OrganizerId,
+            evt.AgendaItems.Select(a => new AgendaItemResponse(
+                a.Id,
+                a.Title,
+                a.StartUtc,
+                a.EndUtc)).ToList(),
+            evt.Speakers.Select(s => new SpeakerResponse(
+                s.Id,
+                s.Name,
+                s.Bio)).ToList(),
+            evt.TicketTypes.Select(t => new TicketTypeResponse(
+                t.Id,
+                t.EventId,
+                t.Name,
+                t.Price,
+                t.QuantityAvailable)).ToList()
+        );
+
+        return Ok(response);
     }
 
     [HttpPost]
@@ -65,7 +115,18 @@ public class EventsController : ControllerBase
         _db.Events.Add(evt);
         await _db.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetById), new { id = evt.Id }, evt);
+        var response = new EventResponse(
+            evt.Id,
+            evt.Title,
+            evt.Description,
+            evt.DateUtc,
+            evt.Venue,
+            evt.OrganizerId,
+            new List<AgendaItemResponse>(),
+            new List<SpeakerResponse>(),
+            new List<TicketTypeResponse>());
+
+       return CreatedAtAction(nameof(GetById), new { id = evt.Id }, response);
     }
 
     [HttpPost("{eventId:guid}/agenda")]
@@ -109,6 +170,7 @@ public class EventsController : ControllerBase
         return Ok(speaker);
     }
 
+
     [HttpPost("{eventId:guid}/tickets")]
     [Authorize(Roles = $"{Roles.Administrator},{Roles.Organizer}")]
     public async Task<IActionResult> AddTicketType(Guid eventId, AddTicketTypeRequest request)
@@ -127,6 +189,13 @@ public class EventsController : ControllerBase
         _db.TicketTypes.Add(ticket);
         await _db.SaveChangesAsync();
 
-        return Ok(ticket);
+        var response = new TicketTypeResponse(
+            ticket.Id,
+            ticket.EventId,
+            ticket.Name,
+            ticket.Price,
+            ticket.QuantityAvailable);
+
+        return Ok(response);
     }
 }

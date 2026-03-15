@@ -1,4 +1,6 @@
-﻿namespace EventPlatform.Api.Modules.Events;
+﻿using System.Text.Json.Serialization;
+
+namespace EventPlatform.Api.Modules.Events;
 
 public class TicketType
 {
@@ -8,5 +10,6 @@ public class TicketType
     public decimal Price { get; set; }
     public int QuantityAvailable { get; set; }
 
+    //[JsonIgnore]
     public Event? Event { get; set; }
 }

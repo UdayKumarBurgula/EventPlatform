@@ -25,7 +25,14 @@ public class RegistrationsController : ControllerBase
     [Authorize(Roles = $"{Roles.Administrator},{Roles.Attendee}")]
     public async Task<IActionResult> Register(RegisterForEventRequest request)
     {
-        var userId = Guid.Parse(User.FindFirstValue("sub")!);
+        var userIdClaim =
+            User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+            User.FindFirstValue("sub");
+
+        if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized("User id claim is missing or invalid.");
+        }
 
         var evt = await _db.Events.FindAsync(request.EventId);
         if (evt is null) return NotFound("Event not found.");
@@ -65,7 +72,15 @@ public class RegistrationsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> MyRegistrations()
     {
-        var userId = Guid.Parse(User.FindFirstValue("sub")!);
+        //var userId = Guid.Parse(User.FindFirstValue("sub")!);
+        var userIdClaim =
+            User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+            User.FindFirstValue("sub");
+
+        if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized("User id claim is missing or invalid.");
+        }
 
         var registrations = await _db.Registrations
             .Where(x => x.UserId == userId)
